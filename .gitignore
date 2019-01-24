@@ -1,0 +1,13 @@
+### JetBrains template
+.idea
+*.iws
+out
+.idea_modules
+
+### Gradle template
+.gradle
+build
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+

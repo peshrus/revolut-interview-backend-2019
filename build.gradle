@@ -1,0 +1,19 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    implementation 'com.google.guava:guava:27.0.1-jre'
+    testImplementation 'junit:junit:4.12'
+}
+
+group = "com.revolut"
+version = "0.0.1-SNAPSHOT"
+sourceCompatibility = JavaVersion.VERSION_11
+
+mainClassName = 'com.revolut.interview.backend.App'

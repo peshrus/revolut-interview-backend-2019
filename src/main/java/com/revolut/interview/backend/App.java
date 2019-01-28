@@ -7,29 +7,53 @@ import com.revolut.interview.backend.rest.TransferHandler;
 import com.revolut.interview.backend.service.NotEnoughMoneyException;
 import io.javalin.ExceptionHandler;
 import io.javalin.Javalin;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import org.eclipse.jetty.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.JedisPoolAbstract;
 import redis.clients.jedis.Protocol;
+import redis.embedded.RedisServer;
 
 public class App {
 
   private static final Logger LOG = LoggerFactory.getLogger(App.class);
-  private static final int DEFAULT_REST_PORT = 7000;
 
-  private Javalin app;
+  static final int DEFAULT_REST_PORT = 7000;
 
-  public static void main(String[] args) {
+  private Injector injector;
+  private RedisServer redisServer;
+  private Javalin restApp;
+
+  public static void main(String[] args) throws IOException {
     final boolean mandatoryArgsSpecified = args != null && args.length > 2;
+    String redisHost = Protocol.DEFAULT_HOST;
+    int redisPort = Protocol.DEFAULT_PORT;
+    int restPort = DEFAULT_REST_PORT;
 
-    if (!mandatoryArgsSpecified) {
-      throw new IllegalArgumentException();
+    if (mandatoryArgsSpecified) {
+      redisHost = getRedisHost(args[0]);
+      redisPort = parsePort(args[1], Protocol.DEFAULT_PORT);
+      restPort = parsePort(args[2], DEFAULT_REST_PORT);
     }
 
-    final int redisPort = parsePort(args[1], Protocol.DEFAULT_PORT);
-    final int port = parsePort(args[2], DEFAULT_REST_PORT);
+    new App().start(redisHost, redisPort, restPort);
+  }
 
-    new App().start(args[0], redisPort, port);
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  private static String getRedisHost(String hostStr) {
+    String result = hostStr;
+
+    try {
+      InetAddress.getAllByName(hostStr);
+    } catch (UnknownHostException e) {
+      LOG.warn("Wrong host: " + hostStr + ". Use default: " + Protocol.DEFAULT_HOST);
+      result = Protocol.DEFAULT_HOST;
+    }
+
+    return result;
   }
 
   private static int parsePort(String portStr, int defaultValue) {
@@ -45,20 +69,28 @@ public class App {
     return result;
   }
 
-  void start() {
+  void start() throws IOException {
     start(Protocol.DEFAULT_HOST, Protocol.DEFAULT_PORT, DEFAULT_REST_PORT);
   }
 
-  private void start(String redisHost, int redisPort, int restPort) {
-    final Injector injector = Guice.createInjector(new TransferModule(redisHost, redisPort));
+  private void start(String redisHost, int redisPort, int restPort) throws IOException {
+    redisServer = new RedisServer(redisPort);
+
+    // Use external Redis otherwise
+    if (Protocol.DEFAULT_HOST.equals(redisHost)) {
+      redisServer.start();
+    }
+
+    injector = Guice.createInjector(new TransferModule(redisHost, redisPort));
     final TransferHandler transferHandler = injector.getInstance(TransferHandler.class);
     final ExceptionHandler<Exception> exceptionHandler = getExceptionExceptionHandler();
 
-    app = Javalin.create().start(restPort);
-    app.post(TransferHandler.PATH, transferHandler);
-    app.exception(IllegalArgumentException.class, exceptionHandler);
-    app.exception(NotEnoughMoneyException.class, exceptionHandler);
-    app.exception(AccountNotFoundException.class, exceptionHandler);
+    restApp = Javalin.create().start(restPort);
+    restApp.get("/", ctx -> ctx.result("Revolut Backend Test"));
+    restApp.post(TransferHandler.PATH, transferHandler);
+    restApp.exception(IllegalArgumentException.class, exceptionHandler);
+    restApp.exception(NotEnoughMoneyException.class, exceptionHandler);
+    restApp.exception(AccountNotFoundException.class, exceptionHandler);
   }
 
   private ExceptionHandler<Exception> getExceptionExceptionHandler() {
@@ -70,6 +102,8 @@ public class App {
   }
 
   void stop() {
-    app.stop();
+    restApp.stop();
+    injector.getInstance(JedisPoolAbstract.class).destroy();
+    redisServer.stop();
   }
 }

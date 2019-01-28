@@ -8,5 +8,5 @@ public interface AccountDao {
 
   Account findById(Long id) throws AccountNotFoundException;
 
-  void saveTransactionally(Account... accounts);
+  void saveAllTransactionally(Account... accounts);
 }

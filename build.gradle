@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'application'
-    id "io.franzbecker.gradle-lombok" version "1.14"
+    id "jacoco"
 }
 
 repositories {
@@ -13,21 +13,14 @@ dependencies {
     implementation 'com.google.inject:guice:4.2.2'
     implementation 'io.javalin:javalin:2.6.0'
     implementation 'redis.clients:jedis:3.0.1'
+    implementation 'com.github.kstyrc:embedded-redis:0.6'
     
     testImplementation 'junit:junit:4.12'
-    testImplementation 'com.h2database:h2:1.4.197'
-    testImplementation 'com.github.kstyrc:embedded-redis:0.6'
-//    docker run --name revolut-redis -d redis
-//    docker run -it --link revolut-redis:redis --rm redis redis-cli -h redis -p 6379
+    testImplementation "org.mockito:mockito-core:2.23.4"
 }
 
 group = "com.revolut"
 version = "0.0.1-SNAPSHOT"
 sourceCompatibility = JavaVersion.VERSION_11
-
-lombok {
-    version = "1.18.4"
-    sha256 = ""
-}
 
 mainClassName = 'com.revolut.interview.backend.App'

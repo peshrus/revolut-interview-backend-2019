@@ -3,6 +3,7 @@ package com.revolut.interview.backend.rest;
 import com.google.inject.Inject;
 import com.revolut.interview.backend.dao.AccountNotFoundException;
 import com.revolut.interview.backend.service.NotEnoughMoneyException;
+import com.revolut.interview.backend.service.FromAndToAccountsTheSameException;
 import com.revolut.interview.backend.service.TransferService;
 import io.javalin.Context;
 import io.javalin.Handler;
@@ -32,7 +33,7 @@ public class TransferHandler implements Handler {
 
   @Override
   public void handle(@NotNull Context ctx)
-      throws AccountNotFoundException, NotEnoughMoneyException {
+      throws AccountNotFoundException, NotEnoughMoneyException, FromAndToAccountsTheSameException {
     final String sumStr = ctx.pathParam(PARAM_SUM);
     final String fromStr = ctx.queryParam(PARAM_FROM);
     final String toStr = ctx.queryParam(PARAM_TO);

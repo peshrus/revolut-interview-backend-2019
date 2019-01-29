@@ -6,5 +6,5 @@ import java.math.BigDecimal;
 public interface TransferService {
 
   void transferMoney(BigDecimal sum, Long fromAccountId, Long toAccountId)
-      throws NotEnoughMoneyException, AccountNotFoundException;
+      throws NotEnoughMoneyException, AccountNotFoundException, FromAndToAccountsTheSameException;
 }

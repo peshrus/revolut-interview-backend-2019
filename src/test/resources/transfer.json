@@ -1,0 +1,17 @@
+{
+  "scenarioName": "Transfer API- Transfer $1 from account 1 to account 2 -",
+  "steps": [
+    {
+      "name": "transfer",
+      "url": "/transfer/1?from=1&to=2",
+      "operation": "POST",
+      "request": {
+      },
+      "assertions": {
+        "status": 204,
+        "body": "$NULL"
+      }
+    }
+
+  ]
+}

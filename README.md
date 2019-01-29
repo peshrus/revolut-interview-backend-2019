@@ -32,22 +32,30 @@ a pre-installed container/server).
     - embedded-redis - Redis embedded server
     - Junit - a well-known and simple framework for unit tests
     - Mockito - a simple mocking framework for unit tests
+    - zerocode - a lightweight API testing framework
 5. Redis is used to meet requirement #5
+In-memory H2 Database could be used instead of Redis but in such case we would need an additional 
+tool to sync it with data in some database on the disk. While Redis has the persistence mechanism
+(https://redis.io/topics/persistence).
+On the other hand in this particular case it's possible to store data in simple ConcurrentHashMap.
 6. Gradle Application Plugin is used to meet requirement #6.
 embedded-redis is also used as the data store to meet that requirement but in a production 
 environment I would wrap the application into a Docker container and I would use another Docker 
 container for Redis. Kubernetes would be used for orchestration. 
-In-memory H2 Database could be used instead of Redis but in such case we would need an additional 
-tool to sync it with data in some database on the disk. While Redis has the persistence mechanism
-(https://redis.io/topics/persistence).
 7. See unit tests.
 
 ## How to run:
-1. Run `./gradlew clean build` or ``./gradlew.bat clean build``
+1. Run `./gradlew clean build` or `gradlew.bat clean build`
 2. Go to `build/distributions` and unpack `interview-backend-<VERSION>-SNAPSHOT.tar` or 
 `interview-backend-<VERSION>-SNAPSHOT.zip`
-3. Go to `interview-backend-<VERSION>-SNAPSHOT/bin` and run there `interview-backend` or 
+3. Go to `interview-backend-<VERSION>-SNAPSHOT/bin` and run there `./interview-backend` or 
 `interview-backend.bat`. 
 You can run it with optional parameters: `./interview-backend <REDIS_HOST> <REDIS_PORT> <REST_HOST>`
 4. Open `http://localhost:7000/` in your browser, `Revolut Backend Test` should be displayed there.
 The application is ready for usage.
+
+## Load testing:
+1. Run `./gradlew clean build -PenableLoadTest` or `gradlew.bat clean build -PenableLoadTest`
+2. Find reports in `target/zerocode-junit-granular-report.csv` and 
+`target/zerocode-junit-interactive-fuzzy-search.html`
+3. **NOTE: it's just an example pre-configured to run 200 parallel requests** 

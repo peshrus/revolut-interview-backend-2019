@@ -97,6 +97,19 @@ public class TransferServiceImplTest {
   }
 
   @Test
+  public void transferMoney_SameFromToAccount() throws Exception {
+    // Given
+    final long fromAccountId = 1L;
+
+    // Then
+    thrown.expect(FromAndToAccountsTheSameException.class);
+    thrown.expectMessage(String.valueOf(fromAccountId));
+
+    // When
+    transferService.transferMoney(BigDecimal.ONE, fromAccountId, fromAccountId);
+  }
+
+  @Test
   public void transferMoney_OK() throws Exception {
     // Given
     final long fromAccountId = 1L;

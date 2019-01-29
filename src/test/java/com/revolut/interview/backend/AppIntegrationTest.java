@@ -55,60 +55,65 @@ public class AppIntegrationTest {
 
   @Test
   public void transfer_EmptySum() throws Exception {
-    transferErrorFixture("", fromAccountId, toAccountId, HttpStatus.NOT_FOUND_404);
+    transferFixture("", fromAccountId, toAccountId, HttpStatus.NOT_FOUND_404);
   }
 
   @Test
   public void transfer_NotNumSum() throws Exception {
-    transferErrorFixture("a", fromAccountId, toAccountId, HttpStatus.BAD_REQUEST_400);
+    transferFixture("a", fromAccountId, toAccountId, HttpStatus.BAD_REQUEST_400);
   }
 
   @Test
   public void transfer_EmptyFrom() throws Exception {
-    transferErrorFixture("100", "", toAccountId.toString(), HttpStatus.BAD_REQUEST_400);
+    transferFixture("100", "", toAccountId.toString(), HttpStatus.BAD_REQUEST_400);
   }
 
   @Test
   public void transfer_NotNumFrom() throws Exception {
-    transferErrorFixture("100", "a", toAccountId.toString(), HttpStatus.BAD_REQUEST_400);
+    transferFixture("100", "a", toAccountId.toString(), HttpStatus.BAD_REQUEST_400);
   }
 
   @Test
   public void transfer_AbsentFrom() throws Exception {
-    transferErrorFixture("100", 100500L, toAccountId, HttpStatus.BAD_REQUEST_400);
+    transferFixture("100", 100500L, toAccountId, HttpStatus.BAD_REQUEST_400);
   }
 
   @Test
   public void transfer_EmptyTo() throws Exception {
-    transferErrorFixture("100", fromAccountId.toString(), "", HttpStatus.BAD_REQUEST_400);
+    transferFixture("100", fromAccountId.toString(), "", HttpStatus.BAD_REQUEST_400);
   }
 
   @Test
   public void transfer_NotNumTo() throws Exception {
-    transferErrorFixture("100", fromAccountId.toString(), "a", HttpStatus.BAD_REQUEST_400);
+    transferFixture("100", fromAccountId.toString(), "a", HttpStatus.BAD_REQUEST_400);
   }
 
   @Test
   public void transfer_AbsentTo() throws Exception {
-    transferErrorFixture("100", fromAccountId, 100500L, HttpStatus.BAD_REQUEST_400);
+    transferFixture("100", fromAccountId, 100500L, HttpStatus.BAD_REQUEST_400);
+  }
+
+  @Test
+  public void transfer_SameFromToAccount() throws Exception {
+    transferFixture("100", fromAccountId, fromAccountId, HttpStatus.BAD_REQUEST_400);
   }
 
   @Test
   public void transfer_OK() throws Exception {
     // Given & When & Then
-    transferErrorFixture("100", fromAccountId, toAccountId, HttpStatus.NO_CONTENT_204);
+    transferFixture("100", fromAccountId, toAccountId, HttpStatus.NO_CONTENT_204);
 
     // Then
     assertEquals(BigDecimal.valueOf(1900L), accountDao.findById(fromAccountId).getBalance());
     assertEquals(BigDecimal.valueOf(1100L), accountDao.findById(toAccountId).getBalance());
   }
 
-  private void transferErrorFixture(String sum, Long fromAccountId, Long toAccountId,
+  private void transferFixture(String sum, Long fromAccountId, Long toAccountId,
       int expectedStatusCode) throws IOException, InterruptedException {
-    transferErrorFixture(sum, fromAccountId.toString(), toAccountId.toString(), expectedStatusCode);
+    transferFixture(sum, fromAccountId.toString(), toAccountId.toString(), expectedStatusCode);
   }
 
-  private void transferErrorFixture(String sum, String fromAccountId, String toAccountId,
+  private void transferFixture(String sum, String fromAccountId, String toAccountId,
       int expectedStatusCode) throws IOException, InterruptedException {
     // Given
     final HttpRequest httpRequest = makeHttpRequest(sum, fromAccountId, toAccountId);

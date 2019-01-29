@@ -21,11 +21,9 @@ public class TransferServiceImpl implements TransferService {
 
   @Override
   public void transferMoney(BigDecimal sum, Long fromAccountId, Long toAccountId)
-      throws NotEnoughMoneyException, AccountNotFoundException {
-    if (sum.compareTo(BigDecimal.ZERO) < 0) {
-      throw new IllegalArgumentException(
-          "Negative sum: " + sum + " (from: " + fromAccountId + ", to: " + toAccountId + ")");
-    }
+      throws NotEnoughMoneyException, AccountNotFoundException, FromAndToAccountsTheSameException {
+    checkSum(sum, fromAccountId, toAccountId);
+    checkAccountIds(fromAccountId, toAccountId);
 
     final Account from = accountDao.findById(fromAccountId);
     final BigDecimal oldFromBalance = from.getBalance();
@@ -40,6 +38,20 @@ public class TransferServiceImpl implements TransferService {
     LOG.debug("Transfer: " + sum + " (from: " + from + ", to: " + to + ")");
 
     accountDao.saveAllTransactionally(from, to);
+  }
+
+  private void checkSum(BigDecimal sum, Long fromAccountId, Long toAccountId) {
+    if (sum.compareTo(BigDecimal.ZERO) < 0) {
+      throw new IllegalArgumentException(
+          "Negative sum: " + sum + " (from: " + fromAccountId + ", to: " + toAccountId + ")");
+    }
+  }
+
+  private void checkAccountIds(Long fromAccountId, Long toAccountId)
+      throws FromAndToAccountsTheSameException {
+    if (fromAccountId.equals(toAccountId)) {
+      throw new FromAndToAccountsTheSameException(fromAccountId.toString());
+    }
   }
 
   private void checkHasEnoughMoney(BigDecimal newBalance, BigDecimal oldBalance, BigDecimal sum,

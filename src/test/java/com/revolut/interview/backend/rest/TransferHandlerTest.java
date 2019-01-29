@@ -12,8 +12,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.revolut.interview.backend.dao.AccountNotFoundException;
-import com.revolut.interview.backend.service.NotEnoughMoneyException;
 import com.revolut.interview.backend.service.TransferService;
 import io.javalin.Context;
 import io.javalin.Javalin;
@@ -89,8 +87,7 @@ public class TransferHandlerTest {
     assertEquals(HttpStatus.NO_CONTENT_204, status);
   }
 
-  private void handleErrorFixture(String sumStr, String fromStr, String toStr)
-      throws NoSuchFieldException, IllegalAccessException, AccountNotFoundException, NotEnoughMoneyException {
+  private void handleErrorFixture(String sumStr, String fromStr, String toStr) throws Exception {
     // Given
     final Context ctx = makeContext(sumStr, fromStr, toStr);
 

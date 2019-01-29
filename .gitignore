@@ -11,3 +11,5 @@ gradle-app.setting
 !gradle-wrapper.jar
 .gradletasknamecache
 
+### Maven template
+target

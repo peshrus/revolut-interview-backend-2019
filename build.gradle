@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'application'
-    id "jacoco"
+    id 'jacoco'
 }
 
 repositories {
@@ -14,13 +14,34 @@ dependencies {
     implementation 'io.javalin:javalin:2.6.0'
     implementation 'redis.clients:jedis:3.0.1'
     implementation 'com.github.kstyrc:embedded-redis:0.6'
-    
+
     testImplementation 'junit:junit:4.12'
-    testImplementation "org.mockito:mockito-core:2.23.4"
+    testImplementation 'org.mockito:mockito-core:2.23.4'
+    testImplementation('org.jsmart:zerocode-rest-bdd:1.2.17') {
+        exclude group: 'io.confluent', module: 'kafka-avro-serializer'
+    }
 }
 
-group = "com.revolut"
-version = "0.0.1-SNAPSHOT"
+group = 'com.revolut'
+version = '0.0.1-SNAPSHOT'
 sourceCompatibility = JavaVersion.VERSION_11
 
 mainClassName = 'com.revolut.interview.backend.App'
+
+test {
+    jvmArgs '-XX:+UseG1GC'
+    
+    systemProperty 'zerocode.junit', 'gen-smart-charts-csv-reports'
+    // See com/revolut/interview/backend/LoadTest
+    exclude 'com/revolut/interview/backend/AppLoadTest.class'
+    
+    if (!project.hasProperty('enableLoadTest')) {
+        exclude 'com/revolut/interview/backend/LoadTest.class'
+    } else {
+        maxHeapSize = '2G'
+    }
+}
+
+clean.doFirst {
+    delete "${rootDir}/target"
+}

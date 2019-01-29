@@ -5,6 +5,7 @@ import com.google.inject.Injector;
 import com.revolut.interview.backend.dao.AccountNotFoundException;
 import com.revolut.interview.backend.rest.TransferHandler;
 import com.revolut.interview.backend.service.NotEnoughMoneyException;
+import com.revolut.interview.backend.service.FromAndToAccountsTheSameException;
 import io.javalin.ExceptionHandler;
 import io.javalin.Javalin;
 import java.io.IOException;
@@ -91,13 +92,14 @@ public class App {
     restApp.exception(IllegalArgumentException.class, exceptionHandler);
     restApp.exception(NotEnoughMoneyException.class, exceptionHandler);
     restApp.exception(AccountNotFoundException.class, exceptionHandler);
+    restApp.exception(FromAndToAccountsTheSameException.class, exceptionHandler);
   }
 
   private ExceptionHandler<Exception> getExceptionExceptionHandler() {
     return (e, ctx) -> {
       LOG.error("Error", e);
       ctx.status(HttpStatus.BAD_REQUEST_400);
-      ctx.result(e.getMessage());
+      ctx.result(e.toString());
     };
   }
 

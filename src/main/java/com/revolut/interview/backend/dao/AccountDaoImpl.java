@@ -80,6 +80,7 @@ public class AccountDaoImpl implements AccountDao {
       final Transaction transaction = jedis.multi();
 
       for (Account account : accounts) {
+        // TODO consider HINCRBYFLOAT
         transaction.hmset(makeAccountKey(account.getId()), makeFieldsHash(account));
       }
 

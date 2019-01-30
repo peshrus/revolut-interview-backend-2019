@@ -29,8 +29,6 @@ sourceCompatibility = JavaVersion.VERSION_11
 mainClassName = 'com.revolut.interview.backend.App'
 
 test {
-    jvmArgs '-XX:+UseG1GC'
-    
     systemProperty 'zerocode.junit', 'gen-smart-charts-csv-reports'
     // See com/revolut/interview/backend/LoadTest
     exclude 'com/revolut/interview/backend/AppLoadTest.class'

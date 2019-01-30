@@ -12,7 +12,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.revolut.interview.backend.service.TransferService;
+import com.revolut.interview.backend.dao.AccountDao;
 import io.javalin.Context;
 import io.javalin.Javalin;
 import java.lang.reflect.Field;
@@ -30,14 +30,14 @@ public class TransferHandlerTest {
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
-  private TransferService transferServiceMock;
+  private AccountDao accountDaoMock;
   private TransferHandler transferHandler;
   private int status;
 
   @Before
   public void setUp() {
-    transferServiceMock = mock(TransferService.class);
-    transferHandler = new TransferHandler(transferServiceMock);
+    accountDaoMock = mock(AccountDao.class);
+    transferHandler = new TransferHandler(accountDaoMock);
   }
 
   @Test
@@ -82,8 +82,9 @@ public class TransferHandlerTest {
     transferHandler.handle(ctx);
 
     // Then
-    verify(transferServiceMock)
-        .transferMoney(new BigDecimal(sumStr), Long.valueOf(fromStr), Long.valueOf(toStr));
+    verify(accountDaoMock)
+        .transferMoneyTransactionally(new BigDecimal(sumStr), Long.valueOf(fromStr),
+            Long.valueOf(toStr));
     assertEquals(HttpStatus.NO_CONTENT_204, status);
   }
 

@@ -32,7 +32,7 @@ test {
     systemProperty 'zerocode.junit', 'gen-smart-charts-csv-reports'
     // See com/revolut/interview/backend/LoadTest
     exclude 'com/revolut/interview/backend/AppLoadTest.class'
-    
+
     if (!project.hasProperty('enableLoadTest')) {
         exclude 'com/revolut/interview/backend/LoadTest.class'
     } else {

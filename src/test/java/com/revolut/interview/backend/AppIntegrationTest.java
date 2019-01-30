@@ -3,7 +3,9 @@ package com.revolut.interview.backend;
 import static com.revolut.interview.backend.App.DEFAULT_REST_PORT;
 import static com.revolut.interview.backend.rest.TransferHandler.PARAM_FROM;
 import static com.revolut.interview.backend.rest.TransferHandler.PARAM_TO;
+import static java.util.stream.IntStream.rangeClosed;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import com.revolut.interview.backend.dao.AccountDao;
 import com.revolut.interview.backend.dao.AccountDaoImpl;
@@ -17,6 +19,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -106,6 +111,59 @@ public class AppIntegrationTest {
     // Then
     assertEquals(BigDecimal.valueOf(1900L), accountDao.findById(fromAccountId).getBalance());
     assertEquals(BigDecimal.valueOf(1100L), accountDao.findById(toAccountId).getBalance());
+  }
+
+  // FIXED Load test does not test concurrent transfers
+  // NOTE it's not a load test but it does what required
+  @Test(timeout = 60000)
+  public void transfer_ConcurrencyOK() throws Exception {
+    // Given
+    final int transactionsNum = 10;
+    final Long accountId1 = accountDao.create(new Account(BigDecimal.TEN)).getId();
+    final Long accountId2 = accountDao.create(new Account(BigDecimal.TEN)).getId();
+    final Long accountId3 = accountDao.create(new Account(BigDecimal.TEN)).getId();
+    final CountDownLatch startTransaction = new CountDownLatch(1);
+    final CountDownLatch transactionsCompleted = new CountDownLatch(transactionsNum * 2);
+    final ExecutorService executorService = Executors.newFixedThreadPool(transactionsNum * 2);
+
+    // When
+    rangeClosed(1, transactionsNum).forEach(value -> {
+          submitTransferFixture(accountId1, accountId2, startTransaction, transactionsCompleted,
+              executorService);
+          submitTransferFixture(accountId2, accountId3, startTransaction, transactionsCompleted,
+              executorService);
+        }
+    );
+    startTransaction.countDown();
+
+    // Then
+    transactionsCompleted.await();
+    assertEquals(0,
+        BigDecimal.valueOf(9.9).compareTo(accountDao.findById(accountId1).getBalance()));
+    assertEquals(0,
+        BigDecimal.valueOf(10.0).compareTo(accountDao.findById(accountId2).getBalance()));
+    assertEquals(0,
+        BigDecimal.valueOf(10.1).compareTo(accountDao.findById(accountId3).getBalance()));
+  }
+
+  private void submitTransferFixture(Long fromAccountId, Long toAccountId,
+      CountDownLatch startTransaction, CountDownLatch transactionsCompleted,
+      ExecutorService executorService) {
+    executorService.execute(() -> {
+      try {
+        startTransaction.await();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+
+      try {
+        transferFixture("0.01", fromAccountId, toAccountId, HttpStatus.NO_CONTENT_204);
+      } catch (Exception e) {
+        fail(e.toString());
+      }
+
+      transactionsCompleted.countDown();
+    });
   }
 
   private void transferFixture(String sum, Long fromAccountId, Long toAccountId,

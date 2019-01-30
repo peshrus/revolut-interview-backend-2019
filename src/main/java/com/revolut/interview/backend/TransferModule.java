@@ -6,8 +6,6 @@ import com.revolut.interview.backend.dao.AccountDaoImpl;
 import com.revolut.interview.backend.dao.TransferJedisPool;
 import com.revolut.interview.backend.dao.TransferJedisPool.RedisHost;
 import com.revolut.interview.backend.dao.TransferJedisPool.RedisPort;
-import com.revolut.interview.backend.service.TransferService;
-import com.revolut.interview.backend.service.TransferServiceImpl;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import redis.clients.jedis.JedisPoolAbstract;
 import redis.clients.jedis.JedisPoolConfig;
@@ -30,7 +28,6 @@ public class TransferModule extends AbstractModule {
     bind(GenericObjectPoolConfig.class).to(JedisPoolConfig.class);
     bind(JedisPoolAbstract.class).to(TransferJedisPool.class);
     bind(AccountDao.class).to(AccountDaoImpl.class);
-    bind(TransferService.class).to(TransferServiceImpl.class);
   }
 
 }

@@ -3,9 +3,9 @@ package com.revolut.interview.backend;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.revolut.interview.backend.dao.AccountNotFoundException;
+import com.revolut.interview.backend.dao.FromAndToAccountsTheSameException;
+import com.revolut.interview.backend.dao.NotEnoughMoneyException;
 import com.revolut.interview.backend.rest.TransferHandler;
-import com.revolut.interview.backend.service.NotEnoughMoneyException;
-import com.revolut.interview.backend.service.FromAndToAccountsTheSameException;
 import io.javalin.ExceptionHandler;
 import io.javalin.Javalin;
 import java.io.IOException;
@@ -20,10 +20,8 @@ import redis.embedded.RedisServer;
 
 public class App {
 
-  private static final Logger LOG = LoggerFactory.getLogger(App.class);
-
   static final int DEFAULT_REST_PORT = 7000;
-
+  private static final Logger LOG = LoggerFactory.getLogger(App.class);
   private Injector injector;
   private RedisServer redisServer;
   private Javalin restApp;

@@ -1,4 +1,4 @@
-package com.revolut.interview.backend.service;
+package com.revolut.interview.backend.dao;
 
 public class FromAndToAccountsTheSameException extends Exception {
 

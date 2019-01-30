@@ -59,3 +59,23 @@ The application is ready for usage.
 2. Find reports in `target/zerocode-junit-granular-report.csv` and 
 `target/zerocode-junit-interactive-fuzzy-search.html`
 3. **NOTE: it's just an example pre-configured to run 200 parallel requests** 
+
+## Review result with my comments:
+- The solution is not synchronised: balances might change between get and set operations which will 
+cause the inconsistent state
+
+That's completely right. That's why I considered another approach but didn't complete it, 
+unfortunately: https://github.com/peshrus/revolut-interview-backend-2019/commit/0acf1d6f991fa8d9d411caa653668db9c16eaa19#diff-53a12fc275be5173149facb06b630eb3R83
+I'll try to implement it so. In the case of the relational database, I would simply do the changes 
+directly in the storage and I would add a constraint on the field to reject negative values.
+
+- Load test does not test concurrent transfers
+
+It's not true. It doesn't check the validity of the result, that's the issue. I'll add a proper unit 
+test checking concurrent transfers.
+As of load tests, they have to be implemented in a different way anyway: the application is on one 
+server and a JMeter instance running tests is on a different machine.
+
+- Poor REST: GET for transfers - GET requests should be idempotent
+
+POST requests are used actually: https://github.com/peshrus/revolut-interview-backend-2019/commit/ee88535b6a2a110f45d00889cf6a9d1750d2a089#diff-4591e7c4054eea81edc493b567da1243R90  

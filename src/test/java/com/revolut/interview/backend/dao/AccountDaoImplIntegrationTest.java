@@ -1,7 +1,8 @@
 package com.revolut.interview.backend.dao;
 
+import static java.util.stream.IntStream.rangeClosed;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.fail;
 
 import com.revolut.interview.backend.model.Account;
 import java.math.BigDecimal;
@@ -11,7 +12,9 @@ import java.util.concurrent.Executors;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.embedded.RedisServer;
@@ -20,6 +23,9 @@ public class AccountDaoImplIntegrationTest {
 
   private static RedisServer redisServer;
   private static JedisPool jedisPool;
+
+  @Rule
+  public final ExpectedException thrown = ExpectedException.none();
 
   private AccountDao accountDao;
 
@@ -60,56 +66,110 @@ public class AccountDaoImplIntegrationTest {
     accountDao.findById(100500L);
   }
 
-  @Test(timeout = 5000)
-  public void saveAllTransactionally_OK() throws AccountNotFoundException, InterruptedException {
+  @Test
+  public void transferMoneyTransactionally_NegativeSum() throws Exception {
+    // Then
+    thrown.expect(IllegalArgumentException.class);
+    thrown.expectMessage("Negative sum: -1 (from: 1, to: 2)");
+
+    // When
+    accountDao.transferMoneyTransactionally(BigDecimal.valueOf(-1L), 1L, 2L);
+  }
+
+  @Test
+  public void transferMoneyTransactionally_SameFromToAccount() throws Exception {
     // Given
-    final Account account1 = accountDao.create(new Account(BigDecimal.ONE));
-    final Account account2 = accountDao.create(new Account(BigDecimal.TEN));
-    final CountDownLatch getIdLatch = new CountDownLatch(1);
-    final CountDownLatch checkDbInMiddleOfTransaction = new CountDownLatch(1);
-    final CountDownLatch transactionCompleted = new CountDownLatch(1);
-    final ExecutorService executorService = Executors.newFixedThreadPool(1);
+    final long fromAccountId = 1L;
 
-    account1.setBalance(BigDecimal.ZERO);
-    account2.setBalance(BigDecimal.ZERO);
+    // Then
+    thrown.expect(FromAndToAccountsTheSameException.class);
+    thrown.expectMessage(String.valueOf(fromAccountId));
 
-    final Account blockedAccount1 = new Account(account1.getId(), account1.getBalance()) {
-      @Override
-      public Long getId() {
-        try {
-          return super.getId();
-        } finally {
-          checkDbInMiddleOfTransaction.countDown();
-        }
-      }
-    };
-    final Account blockedAccount2 = new Account(account2.getId(), account2.getBalance()) {
-      @Override
-      public Long getId() {
-        try {
-          getIdLatch.await();
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
-        return super.getId();
-      }
-    };
+    // When
+    accountDao.transferMoneyTransactionally(BigDecimal.ONE, fromAccountId, fromAccountId);
+  }
+
+  @Test
+  public void transferMoneyTransactionally_FromAccountNotFound() throws Exception {
+    // Given
+    final long fromAccountId = 100500L;
+    final Account toAccount = accountDao.create(new Account(BigDecimal.ONE));
+
+    // Then
+    thrown.expect(AccountNotFoundException.class);
+    thrown.expectMessage(String.valueOf(fromAccountId));
+
+    // When
+    accountDao.transferMoneyTransactionally(BigDecimal.TEN, fromAccountId, toAccount.getId());
+  }
+
+  @Test
+  public void transferMoneyTransactionally_ToAccountNotFound() throws Exception {
+    // Given
+    final Account fromAccount = accountDao.create(new Account(BigDecimal.ONE));
+    final long toAccountId = 100500L;
+
+    // Then
+    thrown.expect(AccountNotFoundException.class);
+    thrown.expectMessage(String.valueOf(toAccountId));
+
+    // When
+    accountDao.transferMoneyTransactionally(BigDecimal.TEN, fromAccount.getId(), toAccountId);
+  }
+
+  @Test
+  public void transferMoneyTransactionally_NotEnoughMoney() throws Exception {
+    // Given
+    final Account fromAccount = accountDao.create(new Account(BigDecimal.ONE));
+    final Account toAccount = accountDao.create(new Account(BigDecimal.TEN));
+
+    // Then
+    thrown.expect(NotEnoughMoneyException.class);
+    thrown.expectMessage(
+        "Not enough money: (1 - 10) = -9 (from: " + fromAccount.getId() + ", to: " + toAccount
+            .getId() + ")");
+
+    // When
+    accountDao.transferMoneyTransactionally(BigDecimal.TEN, fromAccount.getId(), toAccount.getId());
+  }
+
+  @Test(timeout = 5000)
+  public void transferMoneyTransactionally_OK() throws Exception {
+    // Given
+    final int transactionsNum = 10;
+    final Account fromAccount = accountDao.create(new Account(BigDecimal.valueOf(transactionsNum)));
+    final Account toAccount = accountDao.create(new Account(BigDecimal.ONE));
+    final CountDownLatch startTransaction = new CountDownLatch(1);
+    final CountDownLatch transactionsCompleted = new CountDownLatch(transactionsNum);
+    final ExecutorService executorService = Executors.newFixedThreadPool(transactionsNum);
 
     try {
       // When
-      executorService.submit(() -> {
-        accountDao.saveAllTransactionally(blockedAccount1, blockedAccount2);
-        transactionCompleted.countDown();
-      });
+      rangeClosed(1, transactionsNum).forEach(value ->
+          executorService.execute(() -> {
+            try {
+              startTransaction.await();
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+            }
+
+            try {
+              accountDao
+                  .transferMoneyTransactionally(BigDecimal.valueOf(0.1), fromAccount.getId(),
+                      toAccount.getId());
+            } catch (Exception e) {
+              fail(e.toString());
+            }
+
+            transactionsCompleted.countDown();
+          })
+      );
+      startTransaction.countDown();
 
       // Then
-      checkDbInMiddleOfTransaction.await();
-      assertNotEquals(account1.getBalance(), accountDao.findById(account1.getId()).getBalance());
-      assertNotEquals(account2.getBalance(), accountDao.findById(account2.getId()).getBalance());
-      getIdLatch.countDown();
-      transactionCompleted.await();
-      assertEquals(account1.getBalance(), accountDao.findById(account1.getId()).getBalance());
-      assertEquals(account2.getBalance(), accountDao.findById(account2.getId()).getBalance());
+      transactionsCompleted.await();
+      assertEquals(BigDecimal.valueOf(9.0), accountDao.findById(fromAccount.getId()).getBalance());
+      assertEquals(BigDecimal.valueOf(2.0), accountDao.findById(toAccount.getId()).getBalance());
     } finally {
       executorService.shutdown();
     }
